@@ -29,7 +29,7 @@ crisis from the whole dataset. Gold in rupees tracks the ETF over the long run
 ## Progress (Stage 1)
 
 - [x] Phase 1: Data layer (prices → returns → portfolio P&L), with automatic glitch cleaning
-- [ ] Phase 2: Historical simulation and parametric VaR (rolling 250-day window)
+- [x] Phase 2: Historical simulation and parametric VaR (rolling 250-day window)
 - [ ] Phase 3: Stressed VaR (2008 crisis vs March 2020)
 - [ ] Phase 4: Backtesting (breach count, Kupiec POF test, Basel traffic light)
 - [ ] Phase 5: Automated Excel breach report
@@ -56,11 +56,32 @@ _Every number here comes from code that has actually been run._
 
 Details: [devnotes/phase-1-data.md](devnotes/phase-1-data.md).
 
+### Phase 2: VaR models (run of 2026-11-18)
+Daily 1-day 99% VaR forecasts for **4,752 days** (2 Sep 2008 → 18 Nov 2026). Each
+day's forecast uses only the previous 250 days.
+
+| Model | Next-day VaR (19 Nov 2026) | Average | Highest (date) |
+|---|---|---|---|
+| Historical simulation | ₹1.11 L (1.85%) | ₹1.24 L | ₹3.41 L (24 Mar 2020) |
+| Parametric (variance-covariance) | ₹1.08 L (1.80%) | ₹1.09 L | ₹2.65 L (20 May 2009) |
+
+- Historical VaR averages **1.13× parametric VaR**: fat tails that the normal
+  model misses.
+- Parametric VaR peaked right after the **+₹6.0 L election-rally gain** (18 May
+  2009): the normal model treats big gains as risk too.
+- Both models were breached on 24 Oct 2008 (loss ₹3.79 L) and 23 Mar 2020 (loss
+  ₹4.19 L vs VaR ₹2.94 L historical / ₹1.36 L parametric).
+- **Ghost effect:** historical VaR fell **₹3.41 L → ₹1.78 L in six trading days**
+  (Feb–Mar 2021) as March 2020 aged out of the window, with no change in the market.
+
+Details: [devnotes/phase-2-var-models.md](devnotes/phase-2-var-models.md).
+
 ## How to run
 
 ```bash
 pip install -r requirements.txt
 python data.py        # Phase 1: download data, remove glitches, show P&L summary + worst days
+python run_var.py     # Phase 2: daily VaR from both models -> outputs/var_forecasts.csv
 ```
 
 ## Project structure
@@ -69,6 +90,8 @@ python data.py        # Phase 1: download data, remove glitches, show P&L summar
 config.py      all settings (portfolio, dates, confidence, window)
 data.py        prices -> returns -> portfolio P&L
 models/        one file per VaR model, all sharing one interface
+                 (base.py: VaRModel + rolling_var; historical.py; parametric.py)
+run_var.py     runs every model through history (Phase 2)
 backtest.py    VaR forecast vs next-day P&L, Kupiec test, traffic light
 report.py      Excel breach report
 outputs/       generated reports (not committed)
