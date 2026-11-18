@@ -243,36 +243,61 @@ def get_portfolio_pnl(simple_returns, holdings):
 
 
 # ---------------------------------------------------------------------------
-# Run this file directly to try it:   python data.py
+# STEP 4 — The whole pipeline in one call (used by every later phase)
 # ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    # "if __name__ == '__main__'" means: only run this block when you run
-    # THIS file directly — not when another file does "import data".
+def load_data():
+    """
+    Run the full Phase 1 pipeline and return everything later phases need.
+
+    Returns a dict with:
+        "returns"     : daily SIMPLE returns, one column per asset we hold
+        "pnl"         : daily portfolio P&L in rupees
+        "glitch_log"  : table of every bad price removed
+        "first_dates" : first date each downloaded ticker has a price
+    """
+    # Imported here (not at the top) so data.py's functions can be used with
+    # any settings; the pipeline itself reads the project's config.py.
     from config import DERIVED, END_DATE, HOLDINGS, START_DATE
 
     # Download real holdings + the ingredients of derived ones (GC=F for gold).
     prices = get_prices(tickers_to_download(HOLDINGS, DERIVED), START_DATE, END_DATE)
 
-    # Show where each asset's history starts. dropna() later keeps only days
-    # where ALL assets have a price, so the latest start date wins.
-    print("First available price per asset:")
-    for ticker in prices.columns:
-        print(f"  {ticker:12s} {prices[ticker].first_valid_index().date()}")
-    print()
+    # Where each ticker's history starts (dropna later keeps the LATEST start).
+    first_dates = {t: prices[t].first_valid_index().date() for t in prices.columns}
 
-    # Remove glitches and show every correction made.
+    # Remove glitches (every correction is recorded in glitch_log).
     prices, glitch_log = clean_prices(prices)
-    print(f"Glitches removed: {len(glitch_log)}")
-    if len(glitch_log):
-        print(glitch_log.to_string(index=False))
-    print()
 
     # Build GOLD_INR from its cleaned ingredients, then keep ONLY the assets we
     # hold (GC=F was just an ingredient; we don't hold it on its own).
     prices = add_derived(prices, DERIVED)[list(HOLDINGS)]
 
-    simple = get_returns(prices, kind="simple")
-    pnl = get_portfolio_pnl(simple, HOLDINGS)
+    returns = get_returns(prices, kind="simple")
+    pnl = get_portfolio_pnl(returns, HOLDINGS)
+    return {"returns": returns, "pnl": pnl, "glitch_log": glitch_log,
+            "first_dates": first_dates}
+
+
+# ---------------------------------------------------------------------------
+# Run this file directly to try it:   python data.py
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    # "if __name__ == '__main__'" means: only run this block when you run
+    # THIS file directly — not when another file does "import data".
+    from config import HOLDINGS
+
+    d = load_data()
+    simple, pnl, glitch_log = d["returns"], d["pnl"], d["glitch_log"]
+
+    print("First available price per asset:")
+    for ticker, first in d["first_dates"].items():
+        print(f"  {ticker:12s} {first}")
+    print()
+
+    print(f"Glitches removed: {len(glitch_log)}")
+    if len(glitch_log):
+        print(glitch_log.to_string(index=False))
+    print()
 
     print(f"Data from {pnl.index[0].date()} to {pnl.index[-1].date()} "
           f"({len(pnl)} trading days)\n")
