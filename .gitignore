@@ -1,0 +1,18 @@
+
+# Added by MD Pretty View — Markdown Preview Enhanced pan/zoom assets
+.crossnote/
+
+# --- VaR engine ---
+# Virtual environments (big, machine-specific, rebuilt from requirements.txt)
+.venv/
+venv/
+# Python's compiled-file cache
+__pycache__/
+# Generated reports: rebuilt by running the code, so never committed
+outputs/
+# Secrets (API keys, tokens)
+.env
+# Excel files are generated outputs
+*.xlsx
+# macOS folder metadata
+.DS_Store

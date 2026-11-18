@@ -1,0 +1,8 @@
+# Packages this project needs, with exact versions (so results can be reproduced).
+# Install with:  pip install -r requirements.txt
+numpy==2.4.4        # fast maths on arrays (logs, percentiles)
+pandas==3.0.2       # tables with dates as the index (prices, returns, P&L)
+yfinance==1.8.0     # downloads daily market prices from Yahoo Finance
+scipy==1.18.1       # statistics: normal distribution (parametric VaR), Kupiec test
+openpyxl==3.1.5     # writes the Excel breach report
+matplotlib==3.10.8  # charts (VaR vs P&L)
