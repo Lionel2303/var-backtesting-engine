@@ -16,3 +16,5 @@ outputs/
 *.xlsx
 # macOS folder metadata
 .DS_Store
+# Personal course material (large, copyrighted): never commit to a public repo
+Finance Minor Lectures/

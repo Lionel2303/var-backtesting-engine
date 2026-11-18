@@ -14,14 +14,21 @@ Market Risk team.
 | HDFC Bank | `HDFCBANK.NS` | Banking |
 | Infosys | `INFY.NS` | IT (earns in USD) |
 | Nifty 50 | `^NSEI` | Broad Indian market |
-| Gold ETF (Nippon GoldBeES) | `GOLDBEES.NS` | Safe-haven asset |
+| Gold in rupees | `GC=F` × `USDINR=X` | Safe-haven asset (see note) |
 | USD/INR | `USDINR=X` | Gains when the rupee weakens (natural hedge) |
 
-Data: daily closing prices from Yahoo Finance, from 2007 (so the 2008 crisis is included).
+Data: daily closing prices from Yahoo Finance, **18 Sep 2007 → present** (the 2008
+crisis is included).
+
+**Why gold is "COMEX gold × USD/INR" and not a Gold ETF:** Yahoo's history for the
+Nippon Gold ETF (`GOLDBEES.NS`) starts only in Jan 2009, which would remove the 2008
+crisis from the whole dataset. Gold in rupees tracks the ETF over the long run
+(×8.32 vs ×8.06 since 2009, weekly correlation 0.75). It lines up loosely day to day
+(correlation 0.34), because COMEX closes ~11 hours after NSE.
 
 ## Progress (Stage 1)
 
-- [ ] Phase 1: Data layer (prices → returns → portfolio P&L)
+- [x] Phase 1: Data layer (prices → returns → portfolio P&L), with automatic glitch cleaning
 - [ ] Phase 2: Historical simulation and parametric VaR (rolling 250-day window)
 - [ ] Phase 3: Stressed VaR (2008 crisis vs March 2020)
 - [ ] Phase 4: Backtesting (breach count, Kupiec POF test, Basel traffic light)
@@ -30,13 +37,30 @@ Data: daily closing prices from Yahoo Finance, from 2007 (so the 2008 crisis is 
 
 ## Results
 
-_None yet. Every number here will come from code that has actually been run._
+_Every number here comes from code that has actually been run._
+
+### Phase 1: data (run of 2026-11-18)
+- **5,002 trading days** (18 Sep 2007 → 18 Nov 2026).
+- **5 bad prices** detected and removed automatically, all USD/INR (e.g. 52.49 on
+  31 Jan 2012, when the market was at ~49.5). The same check caught a ₹0.34
+  (1/100) print in the Gold ETF series, which would have shown as a ₹9.9 crore
+  one-day gain.
+- Daily portfolio P&L: mean **₹3,007**, standard deviation **₹53,127** (0.89% of
+  ₹60 lakh), up on 52.8% of days.
+- **Worst day: −₹4,19,227 on 23 Mar 2020** (COVID crash), a 7.9-standard-deviation
+  move. That's evidence of fat tails, which a normal-distribution VaR would
+  underestimate.
+- 4 of the 5 worst days are in March 2020. The other is 24 Oct 2008 (post-Lehman,
+  −₹3,78,972). Gold cushioned losses on 2 of those 5 days and fell alongside
+  stocks on the other 3.
+
+Details: [devnotes/phase-1-data.md](devnotes/phase-1-data.md).
 
 ## How to run
 
 ```bash
 pip install -r requirements.txt
-python data.py        # Phase 1: download data, show portfolio P&L summary
+python data.py        # Phase 1: download data, remove glitches, show P&L summary + worst days
 ```
 
 ## Project structure
