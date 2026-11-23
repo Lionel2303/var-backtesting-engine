@@ -52,12 +52,12 @@ DERIVED = {
 # 2. WHICH DATES
 # ---------------------------------------------------------------------------
 # Starting in 2007 means the 2008 global financial crisis is in our data.
-# We need that for Stressed VaR in Part 3.
+# We need that for Stressed VaR in Phase 3.
 START_DATE = "2007-01-01"
 END_DATE = None          # None = "up to today"
 
 # ---------------------------------------------------------------------------
-# 3. VaR SETTINGS (used from Part 2 onward)
+# 3. VaR SETTINGS (used from Phase 2 onward)
 # ---------------------------------------------------------------------------
 CONFIDENCE = 0.99        # 99% — the level banks report under Basel rules
 WINDOW = 250             # look back ~1 trading year (about 250 trading days)

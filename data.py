@@ -1,5 +1,5 @@
 """
-data.py — Part 1: get prices, turn them into returns, turn returns into P&L.
+data.py — Phase 1: get prices, turn them into returns, turn returns into P&L.
 
 The pipeline:
     prices (Rs per share)  ->  returns (% moves)  ->  P&L (rupees gained/lost)
