@@ -31,7 +31,7 @@ crisis from the whole dataset. Gold in rupees tracks the ETF over the long run
 - [x] Phase 1: Data layer (prices → returns → portfolio P&L), with automatic glitch cleaning
 - [x] Phase 2: Historical simulation and parametric VaR (rolling 250-day window)
 - [x] Phase 3: Stressed VaR (2008 crisis vs March 2020)
-- [ ] Phase 4: Backtesting (breach count, Kupiec POF test, Basel traffic light)
+- [x] Phase 4: Backtesting (breach count, Kupiec POF test, Basel traffic light)
 - [ ] Phase 5: Automated Excel breach report
 - [ ] Phase 6: Final README with results and how to run
 
@@ -91,6 +91,25 @@ highest historical VaR). Today's normal VaR: ₹1.11 L (historical), ₹1.09 L (
 
 Details: [devnotes/phase-3-stressed-var.md](devnotes/phase-3-stressed-var.md).
 
+### Phase 4: Backtesting (run of 2026-11-23)
+Each day's VaR forecast vs that day's actual P&L, **4,755 days** (2 Sep 2008 → 23 Nov
+2026). A correct 99% model would breach about **47.6** times.
+
+| | Historical | Parametric |
+|---|---|---|
+| Breaches | 64 (1.35%) | 82 (1.72%) |
+| Kupiec POF (5%) | p = 0.023, reject (narrowly) | p = 5.3e-06, reject |
+| Basel zone today (last 250 days) | **Green** (3) | **Amber** (7) |
+| Days in red zone, 2008–2026 | 0% | 5.1% |
+
+- Both models underestimate risk. Parametric is much worse (72% too many breaches):
+  the normal distribution misses fat tails.
+- Historical simulation is the better model: green today and never red.
+- Breaches **cluster** in crises (2020: 8 historical, 11 parametric), which Kupiec
+  can't detect (that needs the Christoffersen test).
+
+Details: [devnotes/phase-4-backtesting.md](devnotes/phase-4-backtesting.md).
+
 ## How to run
 
 ```bash
@@ -98,6 +117,7 @@ pip install -r requirements.txt
 python data.py        # Phase 1: download data, remove glitches, show P&L summary + worst days
 python run_var.py     # Phase 2: daily VaR from both models -> outputs/var_forecasts.csv
 python run_stressed.py  # Phase 3: stressed VaR (2008 vs COVID) -> outputs/stressed_var.csv
+python run_backtest.py  # Phase 4: breaches, Kupiec test, traffic light -> outputs/backtest.csv
 ```
 
 ## Project structure
@@ -110,7 +130,8 @@ models/        one file per VaR model, all sharing one interface
 run_var.py     runs every model through history (Phase 2)
 stressed.py    finds the stressed window and computes SVaR (Phase 3)
 run_stressed.py  runs Phase 3
-backtest.py    VaR forecast vs next-day P&L, Kupiec test, traffic light
+backtest.py    breaches, Kupiec POF test, Basel traffic light (Phase 4)
+run_backtest.py  runs Phase 4
 report.py      Excel breach report
 outputs/       generated reports (not committed)
 devnotes/      one learning note per phase + CHANGELOG.md
