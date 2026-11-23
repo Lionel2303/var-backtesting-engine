@@ -2,6 +2,8 @@
 
 One line per phase, newest first.
 
+- 2026-11-23: Phase 8: EWMA (RiskMetrics λ 0.94) and Responsive VaR (weighted HS, λ 0.994, 500 days) behind the same interface; exp_weights, weighted_age. Common-period backtest (4,505 days): responsive 47 breaches vs 45.1 expected (Kupiec p 0.77), fewest in 2020 (6); EWMA has no cliffs (−3%) but 76 breaches. run_responsive.py.
+
 - 2026-11-23: Phase 7 (Stage 2): Expected Shortfall: predict_es on every model (historical tail average, parametric σφ(z)/(1−α)−μ), ES 99% and 97.5%, stressed ES (hist. ₹3.77 L), ES size check on breach days (ES 11% / 24% too small). run_es.py.
 
 - 2026-11-23: Phase 6: Stage 1 complete. Final results-first README (headline table, method, limitations, planned next), all five scripts verified end to end, comment tidy-up, resume bullets in devnotes/phase-6-ship-it.md.
