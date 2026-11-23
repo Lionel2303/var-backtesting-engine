@@ -25,6 +25,32 @@ class ParametricVaR(VaRModel):
     name = "parametric"
 
     def predict(self, returns_window):
+        mu, sigma = self._mu_sigma(returns_window)
+
+        # z for 99%: norm.ppf(0.99) = 2.326 ("ppf" = inverse of the bell-curve
+        # cumulative probability: which z leaves 99% of the curve below it?).
+        z = norm.ppf(self.confidence)
+
+        # The worst-1% point of a bell curve centred on mu is mu - z x sigma.
+        # VaR is reported as a positive loss, so flip the sign.
+        return z * sigma - mu
+
+    def predict_es(self, returns_window, confidence=None):
+        """
+        Expected Shortfall under a bell curve: ES = sigma x phi(z) / (1 - level) - mu
+
+        phi(z) = norm.pdf(z) = the HEIGHT of the bell curve at z.
+        99%:   z = 2.326, phi = 0.0267 -> ES = 0.0267 / 0.01  = 2.665 sigma (VaR = 2.326 sigma)
+        97.5%: z = 1.960, phi = 0.0584 -> ES = 0.0584 / 0.025 = 2.338 sigma
+        e.g. sigma = Rs 50,000, mu = 0: VaR99 = Rs 1.16 L, ES99 = Rs 1.33 L
+        """
+        level = self._level(confidence)
+        mu, sigma = self._mu_sigma(returns_window)
+        z = norm.ppf(level)
+        return sigma * norm.pdf(z) / (1 - level) - mu
+
+    def _mu_sigma(self, returns_window):
+        """Average daily rupee P&L (mu) and its standard deviation (sigma), from the covariance matrix."""
         # Rupees held per asset, in the same order as the return columns.
         w = self.holdings[returns_window.columns].to_numpy()
 
@@ -42,11 +68,4 @@ class ParametricVaR(VaRModel):
 
         # Average daily rupee P&L over the window (usually small vs sigma).
         mu = returns_window.mean().to_numpy() @ w
-
-        # z for 99%: norm.ppf(0.99) = 2.326 ("ppf" = inverse of the bell-curve
-        # cumulative probability: which z leaves 99% of the curve below it?).
-        z = norm.ppf(self.confidence)
-
-        # The worst-1% point of a bell curve centred on mu is mu - z x sigma.
-        # VaR is reported as a positive loss, so flip the sign.
-        return z * sigma - mu
+        return mu, sigma

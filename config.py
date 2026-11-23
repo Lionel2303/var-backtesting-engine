@@ -61,3 +61,7 @@ END_DATE = None          # None = "up to today"
 # ---------------------------------------------------------------------------
 CONFIDENCE = 0.99        # 99% — the level banks report under Basel rules
 WINDOW = 250             # look back ~1 trading year (about 250 trading days)
+
+# Expected Shortfall (Phase 7). Basel's newer rules (FRTB) use ES at 97.5%
+# instead of VaR at 99%. We compute ES at both levels.
+ES_CONFIDENCE = 0.975

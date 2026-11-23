@@ -13,6 +13,7 @@ _All numbers come from running the code on 23 Nov 2026 (data 18 Sep 2007 → 23 
 | | Historical simulation | Parametric (normal) |
 |---|---|---|
 | VaR for the next trading day | ₹1.11 L (1.85% of ₹60 L) | ₹1.09 L (1.81%) |
+| Expected Shortfall 99%, next trading day | ₹1.41 L (1.27× VaR) | ₹1.24 L (1.14× VaR) |
 | Stressed VaR (worst 250-day window: COVID) | **₹3.41 L** (3.1× today) | ₹1.51 L |
 | Breaches over 4,755 days (expected 47.6) | **64** (1.35%) | **82** (1.72%) |
 | Kupiec POF test (5%) | p = 0.023, reject (narrowly) | p = 5.3 × 10⁻⁶, reject |
@@ -125,6 +126,22 @@ Breach drivers: **Infosys 55, Reliance 51, HDFC Bank 29**, gold 8, Nifty 3, USD/
 0. Example: 12 Apr 2013, historical VaR ₹86,625 vs a loss of ₹2,60,007, driven by
 Infosys (−₹2,12,586 on its results day).
 
+### Phase 7 (Stage 2): Expected Shortfall
+ES = the **average** loss on the days beyond VaR (Basel's FRTB uses 97.5% ES).
+
+| | VaR 99% | ES 99% | ES 97.5% | Stressed ES 99% |
+|---|---|---|---|---|
+| Historical | ₹1.11 L | ₹1.41 L | ₹1.17 L | ₹3.77 L |
+| Parametric | ₹1.09 L | ₹1.24 L | ₹1.09 L | ₹1.73 L |
+
+- Over 18 years, historical ES averages **1.23× VaR** (a bell curve gives 1.15): the
+  worst 2–3 days are fatter than normal. At 97.5% both models average 1.01× VaR 99%,
+  so the fat tail is concentrated in very few days.
+- **97.5% ES isn't always more conservative than 99% VaR:** on the COVID window it's
+  ₹2.88 L vs SVaR ₹3.41 L.
+- **ES was still too small on breach days:** the average loss was 11% above historical
+  ES and 24% above parametric ES.
+
 Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/).
 
 ## Limitations
@@ -139,7 +156,7 @@ Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/
 
 ## Planned next
 
-- Expected Shortfall and GARCH/EWMA volatility
+- ~~Expected Shortfall~~ (done, Phase 7); EWMA (Phase 8) and GARCH (Phase 9) volatility
 - Monte Carlo VaR and the Christoffersen test
 - Derivatives with Greeks-based P&L explain
 - Stress scenarios (RBI rate shock, rupee fall)
@@ -157,6 +174,7 @@ python run_var.py       # Phase 2: daily VaR from both models -> outputs/var_for
 python run_stressed.py  # Phase 3: stressed VaR (2008 vs COVID) -> outputs/stressed_var.csv
 python run_backtest.py  # Phase 4: breaches, Kupiec test, traffic light -> outputs/backtest.csv
 python report.py        # Phase 5: Excel breach report -> outputs/var_breach_report_<date>.xlsx
+python run_es.py        # Phase 7: Expected Shortfall vs VaR -> outputs/es_forecasts.csv
 ```
 
 Each script downloads fresh data, so numbers move slightly as new days arrive.
@@ -166,14 +184,15 @@ Each script downloads fresh data, so numbers move slightly as new days arrive.
 ```
 config.py        all settings (portfolio, dates, confidence, window)
 data.py          prices -> glitch cleaning -> returns -> portfolio P&L
-models/          one file per VaR model, all sharing one interface
+models/          one file per VaR model, all sharing one interface (predict = VaR, predict_es = ES)
                    (base.py: VaRModel + rolling_var; historical.py; parametric.py)
 run_var.py       runs every model through history (Phase 2)
 stressed.py      finds the stressed window and computes SVaR (Phase 3)
 run_stressed.py  runs Phase 3
-backtest.py      breaches, Kupiec POF test, Basel traffic light (Phase 4)
+backtest.py      breaches, Kupiec POF test, Basel traffic light (Phase 4), ES size check (Phase 7)
 run_backtest.py  runs Phase 4
 report.py        automated Excel breach report (Phase 5)
+run_es.py        Expected Shortfall vs VaR, stressed ES, ES size check (Phase 7)
 outputs/         generated files (not committed)
 devnotes/        one learning note per phase + CHANGELOG.md
 ```

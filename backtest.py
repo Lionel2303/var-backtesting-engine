@@ -74,6 +74,26 @@ def traffic_light(n_breaches_250):
     return "red"           # 10+: the model is almost certainly wrong
 
 
+def es_severity(breaches, es, pnl):
+    """
+    Is ES the right SIZE? On the days VaR was breached, compare the average
+    actual loss with the average ES forecast for those days.
+
+    If ES is right, the two averages should be about equal (ratio ~ 1.0).
+    Ratio > 1 -> losses beyond VaR were bigger than ES promised (ES too low).
+    Example: 3 breach days, losses 2.0L, 3.0L, 4.0L (avg 3.0L), ES forecasts
+             2.0L, 2.5L, 3.0L (avg 2.5L) -> ratio 1.2 -> ES 20% too small.
+
+    This is a simple check, not a formal statistical test (formal ES backtests,
+    e.g. Acerbi-Szekely, are a later item).
+    """
+    pnl = pnl.reindex(es.index)
+    loss = -pnl[breaches]                 # actual losses on breach days (positive)
+    forecast = es[breaches]               # what ES said for those same days
+    return {"breach_days": int(breaches.sum()), "avg_loss": loss.mean(),
+            "avg_es": forecast.mean(), "ratio": loss.mean() / forecast.mean()}
+
+
 def rolling_zone(breaches, window=250):
     """
     For every day, count breaches in the 250 days ending that day and give its
