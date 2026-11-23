@@ -30,7 +30,7 @@ crisis from the whole dataset. Gold in rupees tracks the ETF over the long run
 
 - [x] Phase 1: Data layer (prices → returns → portfolio P&L), with automatic glitch cleaning
 - [x] Phase 2: Historical simulation and parametric VaR (rolling 250-day window)
-- [ ] Phase 3: Stressed VaR (2008 crisis vs March 2020)
+- [x] Phase 3: Stressed VaR (2008 crisis vs March 2020)
 - [ ] Phase 4: Backtesting (breach count, Kupiec POF test, Basel traffic light)
 - [ ] Phase 5: Automated Excel breach report
 - [ ] Phase 6: Final README with results and how to run
@@ -76,12 +76,28 @@ day's forecast uses only the previous 250 days.
 
 Details: [devnotes/phase-2-var-models.md](devnotes/phase-2-var-models.md).
 
+### Phase 3: Stressed VaR (run of 2026-11-23)
+VaR of today's portfolio on a **fixed** 250-day crisis window (the window giving the
+highest historical VaR). Today's normal VaR: ₹1.11 L (historical), ₹1.09 L (parametric).
+
+| Stress window | Historical SVaR | Parametric SVaR |
+|---|---|---|
+| 2008 crisis (24 Jan 2008 → 7 Jan 2009) | ₹2.64 L (2.4× today) | ₹2.54 L |
+| **COVID, the overall worst (10 Apr 2019 → 23 Mar 2020)** | **₹3.41 L (3.1× today)** | ₹1.51 L |
+
+- The worst year for this portfolio is **COVID, not 2008**.
+- On COVID, parametric SVaR is under half of historical: the normal model averages
+  ~10 crash days into a calm year. On 2008's long crisis the two agree.
+
+Details: [devnotes/phase-3-stressed-var.md](devnotes/phase-3-stressed-var.md).
+
 ## How to run
 
 ```bash
 pip install -r requirements.txt
 python data.py        # Phase 1: download data, remove glitches, show P&L summary + worst days
 python run_var.py     # Phase 2: daily VaR from both models -> outputs/var_forecasts.csv
+python run_stressed.py  # Phase 3: stressed VaR (2008 vs COVID) -> outputs/stressed_var.csv
 ```
 
 ## Project structure
@@ -92,6 +108,8 @@ data.py        prices -> returns -> portfolio P&L
 models/        one file per VaR model, all sharing one interface
                  (base.py: VaRModel + rolling_var; historical.py; parametric.py)
 run_var.py     runs every model through history (Phase 2)
+stressed.py    finds the stressed window and computes SVaR (Phase 3)
+run_stressed.py  runs Phase 3
 backtest.py    VaR forecast vs next-day P&L, Kupiec test, traffic light
 report.py      Excel breach report
 outputs/       generated reports (not committed)
