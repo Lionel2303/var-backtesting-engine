@@ -142,6 +142,27 @@ ES = the **average** loss on the days beyond VaR (Basel's FRTB uses 97.5% ES).
 - **ES was still too small on breach days:** the average loss was 11% above historical
   ES and 24% above parametric ES.
 
+### Phase 8: Exponentially weighted VaR (EWMA and "Responsive VaR")
+Recent days get more weight: **EWMA** (RiskMetrics, λ = 0.94, half-life 11 days) and
+**Responsive VaR** (weighted historical simulation, λ = 0.994 on 500 days, half-life
+115 days). All four models were backtested on the same period, **18 Aug 2009 → 23 Nov
+2026 (4,505 days, 45.1 breaches expected)**:
+
+| | Historical | Parametric | EWMA | **Responsive** |
+|---|---|---|---|---|
+| Breaches | 58 | 77 | 76 | **47** |
+| Kupiec p | 0.063 | 1.4e-05 | 2.4e-05 | **0.77** |
+| Breaches in 2020 | 8 | 11 | 8 | **6** |
+| Biggest one-day VaR drop | −28% | −18% | **−3%** | −19% |
+
+- **Responsive VaR is the best model so far:** its breach count matches 1%, it has
+  the fewest 2020 breaches, and it was never in the red zone.
+- On 9 Mar 2020 the weighted models forecast ₹1.39–1.43 L vs historical's ₹0.93 L
+  (they react faster). By 30 Sep 2020 EWMA was back to ₹1.16 L while historical
+  still said ₹3.41 L (EWMA forgets faster).
+- EWMA's average data age is 16 days, far below the ~130-day minimum for weighted
+  models; Responsive VaR's is 140 days.
+
 Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/).
 
 ## Limitations
@@ -156,7 +177,7 @@ Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/
 
 ## Planned next
 
-- ~~Expected Shortfall~~ (done, Phase 7); EWMA (Phase 8) and GARCH (Phase 9) volatility
+- ~~Expected Shortfall~~ (Phase 7) and ~~EWMA / weighted VaR~~ (Phase 8) done; GARCH(1,1) next (Phase 9)
 - Monte Carlo VaR and the Christoffersen test
 - Derivatives with Greeks-based P&L explain
 - Stress scenarios (RBI rate shock, rupee fall)
@@ -175,6 +196,7 @@ python run_stressed.py  # Phase 3: stressed VaR (2008 vs COVID) -> outputs/stres
 python run_backtest.py  # Phase 4: breaches, Kupiec test, traffic light -> outputs/backtest.csv
 python report.py        # Phase 5: Excel breach report -> outputs/var_breach_report_<date>.xlsx
 python run_es.py        # Phase 7: Expected Shortfall vs VaR -> outputs/es_forecasts.csv
+python run_responsive.py  # Phase 8: EWMA + weighted VaR, 4-model backtest -> outputs/responsive_var.csv
 ```
 
 Each script downloads fresh data, so numbers move slightly as new days arrive.
@@ -185,7 +207,8 @@ Each script downloads fresh data, so numbers move slightly as new days arrive.
 config.py        all settings (portfolio, dates, confidence, window)
 data.py          prices -> glitch cleaning -> returns -> portfolio P&L
 models/          one file per VaR model, all sharing one interface (predict = VaR, predict_es = ES)
-                   (base.py: VaRModel + rolling_var; historical.py; parametric.py)
+                   (base.py: VaRModel, rolling_var, exp_weights; historical.py; parametric.py;
+                    ewma.py; weighted_historical.py)
 run_var.py       runs every model through history (Phase 2)
 stressed.py      finds the stressed window and computes SVaR (Phase 3)
 run_stressed.py  runs Phase 3
@@ -193,6 +216,7 @@ backtest.py      breaches, Kupiec POF test, Basel traffic light (Phase 4), ES si
 run_backtest.py  runs Phase 4
 report.py        automated Excel breach report (Phase 5)
 run_es.py        Expected Shortfall vs VaR, stressed ES, ES size check (Phase 7)
+run_responsive.py  EWMA and weighted VaR vs the originals on a common period (Phase 8)
 outputs/         generated files (not committed)
 devnotes/        one learning note per phase + CHANGELOG.md
 ```

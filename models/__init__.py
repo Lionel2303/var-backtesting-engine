@@ -5,8 +5,11 @@ This file lets other code write `from models import HistoricalVaR` instead of
 the longer `from models.historical import HistoricalVaR`.
 """
 
-from models.base import VaRModel, rolling_var
+from models.base import VaRModel, exp_weights, rolling_var, weighted_age
+from models.ewma import EWMAVaR
 from models.historical import HistoricalVaR
 from models.parametric import ParametricVaR
+from models.weighted_historical import WeightedHistoricalVaR
 
-__all__ = ["HistoricalVaR", "ParametricVaR", "VaRModel", "rolling_var"]
+__all__ = ["EWMAVaR", "HistoricalVaR", "ParametricVaR", "VaRModel", "WeightedHistoricalVaR",
+           "exp_weights", "rolling_var", "weighted_age"]

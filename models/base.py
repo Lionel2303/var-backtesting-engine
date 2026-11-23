@@ -9,7 +9,33 @@ Why a shared shape (a "base class")?
     can use ANY model without changes. New model = new file, nothing else.
 """
 
+import numpy as np    # arrays (for the exponential weights)
 import pandas as pd   # tables with dates as the index
+
+
+def exp_weights(n, lam):
+    """
+    Exponentially decaying weights for n days, OLDEST first, summing to 1.
+
+    The newest day gets lam^0 = 1, the day before lam^1, then lam^2, ... and
+    all are divided by their total so they add up to 1 (normalised weights).
+    e.g. n = 3, lam = 0.5: raw 0.25, 0.5, 1 -> normalised 0.14, 0.29, 0.57
+    lam = 1 gives equal weights (1/n each): plain historical simulation.
+    """
+    # np.arange(n - 1, -1, -1) = n-1, n-2, ..., 0 = "days back" for each row
+    # (row 0 is the oldest, n-1 days back; the last row is today, 0 days back).
+    raw = lam ** np.arange(n - 1, -1, -1)
+    return raw / raw.sum()
+
+
+def weighted_age(n, lam):
+    """
+    Weighted average age of the data in days (the reading material's "WAOP").
+    Basel's rule: with weighting, this must be at least ~6 months (~130 days).
+    e.g. lam = 1, n = 500 -> 249.5 days (equal weights: the middle of the window).
+    """
+    ages = np.arange(n - 1, -1, -1)            # days back, oldest first (same order as exp_weights)
+    return float(ages @ exp_weights(n, lam))   # sum of age x weight
 
 
 class VaRModel:

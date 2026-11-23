@@ -65,3 +65,8 @@ WINDOW = 250             # look back ~1 trading year (about 250 trading days)
 # Expected Shortfall (Phase 7). Basel's newer rules (FRTB) use ES at 97.5%
 # instead of VaR at 99%. We compute ES at both levels.
 ES_CONFIDENCE = 0.975
+
+# Exponential weighting (Phase 8): recent days count more than old ones.
+EWMA_LAMBDA = 0.94         # RiskMetrics daily decay: weights halve every ~11 days
+RESPONSIVE_LAMBDA = 0.994  # "Responsive VaR" (FRAM reading material): halve every ~115 days
+RESPONSIVE_WINDOW = 500    # ...on a 2-year window, as in the reading material
