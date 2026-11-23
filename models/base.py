@@ -54,10 +54,27 @@ class VaRModel:
         """Each specific model must replace this with its own VaR formula."""
         raise NotImplementedError("each VaR model must define predict()")
 
+    def predict_es(self, returns_window, confidence=None):
+        """
+        Expected Shortfall: the AVERAGE loss on days worse than VaR (positive rupees).
+        confidence=None means "use the model's own level" (0.99).
+        Each specific model must replace this with its own ES formula.
+        """
+        raise NotImplementedError("each VaR model must define predict_es()")
 
-def rolling_var(model, returns, window):
+    def _level(self, confidence):
+        """The confidence to use: the one asked for, or the model's own (0.99)."""
+        return self.confidence if confidence is None else confidence
+
+
+def rolling_var(model, returns, window, measure="var", confidence=None):
     """
     Run a model day by day through history ("rolling window").
+
+    measure    : "var" -> model.predict (VaR, the model's own confidence)
+                 "es"  -> model.predict_es (Expected Shortfall at `confidence`)
+    The Series is named after the model ("historical") for VaR, and
+    "<model>_es" for ES, so the two can sit side by side in one table.
 
     For each day t, the forecast uses ONLY the `window` days BEFORE t
     (t-window ... t-1), never day t itself. That is exactly like keeping test
@@ -70,8 +87,16 @@ def rolling_var(model, returns, window):
         forecast for d4 uses d1, d2, d3
         forecast for d5 uses d2, d3, d4
     """
-    forecasts = {}                                  # date -> VaR in rupees
+    if measure == "var":
+        forecast, name = model.predict, model.name
+    elif measure == "es":
+        # lambda = a tiny unnamed function: "given past, call predict_es(past, confidence)"
+        forecast, name = (lambda past: model.predict_es(past, confidence)), f"{model.name}_es"
+    else:
+        raise ValueError("measure must be 'var' or 'es'")
+
+    forecasts = {}                                  # date -> forecast in rupees
     for i in range(window, len(returns)):           # first forecastable day is row `window`
         past = returns.iloc[i - window:i]           # rows i-window ... i-1 (day i excluded)
-        forecasts[returns.index[i]] = model.predict(past)
-    return pd.Series(forecasts, name=model.name)
+        forecasts[returns.index[i]] = forecast(past)
+    return pd.Series(forecasts, name=name)

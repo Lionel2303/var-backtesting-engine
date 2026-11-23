@@ -31,3 +31,20 @@ class HistoricalVaR(VaRModel):
 
         # VaR is reported as a positive loss: -(-1.9 lakh) = 1.9 lakh.
         return -worst_1pct
+
+    def predict_es(self, returns_window, confidence=None):
+        """
+        Expected Shortfall: the average of every replayed day at or beyond the
+        VaR point.
+
+        99%, 250 days: VaR point = 3rd-worst -> ES = average of the 3 worst.
+            e.g. -4.0L, -2.5L, -1.5L -> VaR 1.5L, ES (4.0 + 2.5 + 1.5) / 3 = 2.67L
+        97.5%: position 0.025 x 249 = 6.2 -> 7th-worst -> ES = average of the 7 worst.
+        """
+        level = self._level(confidence)
+        pnl = self.scenario_pnl(returns_window)
+        cutoff = np.quantile(pnl, 1 - level, method="lower")   # the VaR point (same rule as predict)
+        # pnl[pnl <= cutoff] keeps only the days at or below the cutoff
+        # (a True/False filter, called "boolean indexing").
+        tail = pnl[pnl <= cutoff]
+        return -tail.mean()                                    # average tail loss, as a positive number

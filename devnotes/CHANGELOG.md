@@ -2,6 +2,8 @@
 
 One line per phase, newest first.
 
+- 2026-11-23: Phase 7 (Stage 2): Expected Shortfall: predict_es on every model (historical tail average, parametric σφ(z)/(1−α)−μ), ES 99% and 97.5%, stressed ES (hist. ₹3.77 L), ES size check on breach days (ES 11% / 24% too small). run_es.py.
+
 - 2026-11-23: Phase 6: Stage 1 complete. Final results-first README (headline table, method, limitations, planned next), all five scripts verified end to end, comment tidy-up, resume bullets in devnotes/phase-6-ship-it.md.
 
 - 2026-11-23: Phase 5: automated Excel breach report (Summary, Breach Log with driver asset, 2 native charts, Chart Data); 146 breaches logged, single stocks drove 135 (Infosys 55, Reliance 51). report.py.
