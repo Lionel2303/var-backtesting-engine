@@ -32,7 +32,7 @@ crisis from the whole dataset. Gold in rupees tracks the ETF over the long run
 - [x] Phase 2: Historical simulation and parametric VaR (rolling 250-day window)
 - [x] Phase 3: Stressed VaR (2008 crisis vs March 2020)
 - [x] Phase 4: Backtesting (breach count, Kupiec POF test, Basel traffic light)
-- [ ] Phase 5: Automated Excel breach report
+- [x] Phase 5: Automated Excel breach report
 - [ ] Phase 6: Final README with results and how to run
 
 ## Results
@@ -110,6 +110,23 @@ Each day's VaR forecast vs that day's actual P&L, **4,755 days** (2 Sep 2008 →
 
 Details: [devnotes/phase-4-backtesting.md](devnotes/phase-4-backtesting.md).
 
+### Phase 5: Breach report (run of 2026-11-23)
+`python report.py` builds `outputs/var_breach_report_<date>.xlsx`, with 4 sheets:
+- **Summary:** latest day's forecast vs actual P&L and breach flag, then per model:
+  next-day VaR, stressed VaR, breaches vs expected, Kupiec, Basel zone (colored).
+- **Breach Log:** all **146 breaches** (64 historical + 82 parametric), each with
+  the asset that drove the loss.
+- **Charts:** native Excel charts of P&L vs −VaR (last 250 days and full history),
+  with breaches as red dots.
+- **Chart Data:** the numbers behind the charts.
+
+Who drove the breaches: **Infosys 55, Reliance 51, HDFC Bank 29**, gold 8, Nifty 3,
+USD/INR 0. Single stocks drove 135 of 146 (concentration risk), and USD/INR never
+did (natural hedge). Example: 12 Apr 2013, historical VaR ₹86,625 vs loss ₹2,60,007,
+driven by Infosys (−₹2,12,586).
+
+Details: [devnotes/phase-5-breach-report.md](devnotes/phase-5-breach-report.md).
+
 ## How to run
 
 ```bash
@@ -118,6 +135,7 @@ python data.py        # Phase 1: download data, remove glitches, show P&L summar
 python run_var.py     # Phase 2: daily VaR from both models -> outputs/var_forecasts.csv
 python run_stressed.py  # Phase 3: stressed VaR (2008 vs COVID) -> outputs/stressed_var.csv
 python run_backtest.py  # Phase 4: breaches, Kupiec test, traffic light -> outputs/backtest.csv
+python report.py        # Phase 5: Excel breach report -> outputs/var_breach_report_<date>.xlsx
 ```
 
 ## Project structure
@@ -132,7 +150,7 @@ stressed.py    finds the stressed window and computes SVaR (Phase 3)
 run_stressed.py  runs Phase 3
 backtest.py    breaches, Kupiec POF test, Basel traffic light (Phase 4)
 run_backtest.py  runs Phase 4
-report.py      Excel breach report
+report.py      automated Excel breach report (Phase 5)
 outputs/       generated reports (not committed)
 devnotes/      one learning note per phase + CHANGELOG.md
 ```
