@@ -191,10 +191,70 @@ None in the model. A setup slip: an `Edit` on `models/__init__.py` matched twice
    1,000,000. That's 100× the compute for about ₹2,600 of noise, against model error
    worth dozens of breaches.
 
+## Addendum (2026-11-24): how much does ν = 5 matter?
+
+**Why ν = 5:** an assumption, not a fit.
+- Studies of daily stock returns usually find ν ≈ 3–6.
+- ν must be above 4 for kurtosis to be finite.
+- It's a common default.
+
+`run_monte_carlo.py` now prints a sensitivity table via `nu_sensitivity()`. For each
+ν it computes VaR = k(ν)·σ − μ every day. That is MC-t without the noise; the
+hand-check showed they agree within 0.05%.
+
+| ν | k (× σ) | Breaches | Kupiec p | Average VaR |
+|---|---|---|---|---|
+| 3 | 2.622 | 44 | 0.60 | ₹1.23 L |
+| 4 | 2.649 | 43 | 0.50 | ₹1.24 L |
+| **5** | 2.606 | 45 | 0.71 | ₹1.22 L |
+| 6 | 2.566 | 50 | 0.72 | ₹1.20 L |
+| 8 | 2.508 | 63 | 0.032 | ₹1.17 L |
+| 10 | 2.472 | 66 | 0.011 | ₹1.16 L |
+| 30 | 2.374 | 77 | 8.2e-05 | ₹1.11 L |
+
+- **The result holds for ν = 3–6 and fails from ν = 8.** "A fat tail fixes the count"
+  is robust, but only if the tail is quite fat.
+- **k isn't monotonic:** ν = 4 gives the largest multiplier. With the variance fixed,
+  a very fat tail moves probability into the far tail *and* the centre, so the 1%
+  point can move inwards.
+- **Choosing ν from this table would be tuning on the test set.** It's a robustness
+  check only.
+
+**Fitting ν instead.** These numbers come from a scratch analysis on 2026-11-24 and
+are not in the committed code.
+- **Fitted on each trailing 250-day window** (227 monthly fits):
+  - median 6.6, 10th–90th percentile 3.5–14.8
+  - calm years ~13–15 (2011: 15.1, 2017: 13.9); 2020: 1.9 (infinite variance;
+    floored at 2.1)
+  - backtest with the fitted ν, held monthly: **60 breaches** (Kupiec p 0.081),
+    worse than fixed ν = 5
+- **Why:** the same as GARCH's α = 0 in Phase 9. Calm short windows contain too few
+  extreme days to identify the tail.
+- **Whole history** (5,000 days): MLE ν = **3.1**, excess kurtosis 9.6. Using it for
+  past forecasts would be look-ahead.
+
+**Decision:** keep ν = 5 as a **documented assumption with this sensitivity table**,
+which is standard validation practice. An expanding-window fit (all data up to that
+day) is a possible follow-up.
+
+**Check questions on the addendum:**
+1. **Q:** Why not pick ν because it gave the breach count closest to 47.6?
+   **My answer:** You'd be using the test data as training data.
+   **Feedback:** Correct. That's tuning on the test set.
+2. **Q:** Why is a fitted ν ≈ 13 in calm years dangerous?
+   **My answer:** It shows very low volatility.
+   **Feedback:** Close, but ν is tail **shape**, not volatility (σ). ν ≈ 13 means
+   "extreme days are very rare" (thin tails), so VaR is too low when the shock comes.
+   It's the same small-calm-sample problem as GARCH's α = 0.
+3. **Q:** Is the Monte Carlo result reliable?
+   **My answer:** Yes, but it depends on what metric it's tested on.
+   **Feedback:** Good instinct. Reliable for the **count** (it passes Kupiec for any
+   ν from 3 to 6, fails from 8); not for **timing** (independence p 0.0088).
+
 ## Next phase
 
 Stage 3 is complete. Possible follow-ups:
-- an MC-t sensitivity check on ν
+- an expanding-window fit of ν
 - MC with an EWMA or GARCH Σ (fat tail + fast reaction)
 - a duration test
 

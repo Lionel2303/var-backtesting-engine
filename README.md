@@ -229,6 +229,11 @@ Full period, **2 Sep 2008 → 24 Nov 2026 (4,756 days, 47.6 expected)**:
   separate fixes.
 - **Sampling noise** across 5 seeds: 7.0% at 1,000 draws, 2.4% at 10,000, 0.9% at
   100,000 (it falls with √N).
+- **ν = 5 is an assumption, not a fit:**
+  - It holds for ν = 3–6: 43–50 breaches, all pass Kupiec. It fails from ν = 8
+    (63 or more).
+  - Fitting ν on trailing 250-day windows did worse (60 breaches), because calm
+    windows look almost normal (ν ≈ 13).
 
 Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/).
 

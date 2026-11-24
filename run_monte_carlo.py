@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import t as student_t
 
-from backtest import christoffersen, compare_models
+from backtest import christoffersen, compare_models, find_breaches, kupiec_pof
 from config import CONFIDENCE, HOLDINGS, MC_SEED, MC_SIMS, MC_T_DF, WINDOW
 from data import load_data
 from models import HistoricalVaR, MonteCarloVaR, ParametricVaR, rolling_var
@@ -63,6 +63,34 @@ def sampling_noise(recent):
     return pd.DataFrame(rows).T
 
 
+def nu_sensitivity(returns, pnl, nus=(3, 4, 5, 6, 8, 10, 30)):
+    """
+    How much does the CHOICE of df (nu) matter? nu = 5 is an assumption, not a fit.
+
+    For each nu, VaR = k(nu) x sigma - mu every day, where k(nu) = the 1% point of a
+    unit-variance t (e.g. nu 5 -> 2.606, nu 30 -> 2.374, normal -> 2.326).
+    This is MC-t without the sampling noise (the hand-check shows they agree).
+    Choosing nu by THIS table would be tuning on the test set, so it is a
+    robustness check only.
+    """
+    para = ParametricVaR(HOLDINGS, CONFIDENCE)
+    days = returns.index[WINDOW:]
+    # mu and sigma of portfolio P&L on each trailing 250-day window (as parametric VaR)
+    mu_sigma = [para._mu_sigma(returns.iloc[i - WINDOW:i]) for i in range(WINDOW, len(returns))]
+    mu = pd.Series([m for m, _ in mu_sigma], index=days)
+    sigma = pd.Series([s for _, s in mu_sigma], index=days)
+    actual = pnl.reindex(days)
+    rows = {}
+    for nu in nus:
+        k = student_t.ppf(CONFIDENCE, nu) * np.sqrt((nu - 2) / nu)   # unit-variance t quantile
+        var = k * sigma - mu
+        b = find_breaches(var, actual)
+        rows[f"nu {nu}"] = {"k (x sigma)": round(k, 3), "breaches": int(b.sum()),
+                            "kupiec_p": f"{kupiec_pof(int(b.sum()), len(days), P)['p_value']:.2g}",
+                            "avg_VaR_L": lakh(var.mean())}
+    return pd.DataFrame(rows).T
+
+
 def main():
     data = load_data()
     returns, pnl = data["returns"], data["pnl"]
@@ -100,7 +128,10 @@ def main():
     print(f"MC-normal / parametric VaR, every day: average {ratio.mean():.3f}, "
           f"range {ratio.min():.3f} - {ratio.max():.3f}")
     ratio_t = (var["mc_t"] / var["mc_normal"])
-    print(f"MC-t / MC-normal VaR, every day: average {ratio_t.mean():.3f}")
+    print(f"MC-t / MC-normal VaR, every day: average {ratio_t.mean():.3f}\n")
+
+    print(f"Sensitivity to the t degrees of freedom (nu = {MC_T_DF} is an assumption):")
+    print(nu_sensitivity(returns, pnl).to_string())
 
     out = var.join(es).assign(actual_pnl=actual)
     for n in var.columns:
