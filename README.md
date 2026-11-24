@@ -163,6 +163,31 @@ Recent days get more weight: **EWMA** (RiskMetrics, λ = 0.94, half-life 11 days
 - EWMA's average data age is 16 days, far below the ~130-day minimum for weighted
   models; Responsive VaR's is 140 days.
 
+### Phase 9: GARCH(1,1), with a normal tail and Filtered Historical Simulation
+GARCH **fits** the volatility dynamics: σ²ₜ₊₁ = ω + α·r²ₜ + β·σ²ₜ. EWMA is the
+special case ω = 0, α+β = 1. On the full history the fit is α 0.067, β 0.920
+(half-life 53 days, long-run vol 0.83%/day). Parameters are re-fitted every 21 days
+on 500 days. **FHS** scales the data's own standardised surprises by the GARCH σ.
+
+Final 6-model backtest, **18 Aug 2009 → 24 Nov 2026 (4,506 days, 45.1 expected)**:
+
+| | Historical | Parametric | EWMA | **Responsive** | GARCH | GARCH-FHS |
+|---|---|---|---|---|---|---|
+| Breaches | 58 | 77 | 76 | **47** | 70 | 53 |
+| Kupiec p | 0.064 | 1.4e-05 | 2.5e-05 | **0.77** | 0.00055 | 0.25 |
+| Breaches in 2020 | 8 | 11 | 8 | **6** | 13 | 7 |
+| Average VaR | ₹1.17 L | ₹1.01 L | ₹0.97 L | ₹1.19 L | ₹0.97 L | ₹1.08 L |
+
+- **Tail shape matters as much as volatility.** With the same σ, FHS had 53 breaches
+  against 70 for the normal tail.
+- **Parameter instability:**
+  - Re-fitting daily let one crash day flip α from 0.00 to 0.22 and back
+    (VaR −41% in one day on 11 Mar 2020).
+  - Re-fitting monthly fixed that, but 24 of 215 fits on calm 500-day windows found
+    α ≈ 0. The fit held through March 2020 froze GARCH VaR at ₹0.92 L while losses
+    reached ₹4.19 L.
+- **Responsive VaR remains the best model overall.**
+
 Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/).
 
 ## Limitations
@@ -172,12 +197,14 @@ Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/
   attribution like component VaR.
 - **Kupiec checks only the number of breaches, not their timing.** Breach clustering
   needs the Christoffersen test (planned).
+- **GARCH parameters are unstable on a 500-day window:** calm windows can give α ≈ 0
+  (no reaction to shocks). A longer or expanding window, or a floor on α, is untested.
 - **Data:** free Yahoo Finance data, which can revise the latest day's close for a
   while after the market shuts. The gold proxy uses COMEX, which closes after NSE.
 
 ## Planned next
 
-- ~~Expected Shortfall~~ (Phase 7) and ~~EWMA / weighted VaR~~ (Phase 8) done; GARCH(1,1) next (Phase 9)
+- ~~Expected Shortfall~~ (Phase 7), ~~EWMA / weighted VaR~~ (Phase 8) and ~~GARCH(1,1) + FHS~~ (Phase 9) done
 - Monte Carlo VaR and the Christoffersen test
 - Derivatives with Greeks-based P&L explain
 - Stress scenarios (RBI rate shock, rupee fall)
@@ -197,6 +224,7 @@ python run_backtest.py  # Phase 4: breaches, Kupiec test, traffic light -> outpu
 python report.py        # Phase 5: Excel breach report -> outputs/var_breach_report_<date>.xlsx
 python run_es.py        # Phase 7: Expected Shortfall vs VaR -> outputs/es_forecasts.csv
 python run_responsive.py  # Phase 8: EWMA + weighted VaR, 4-model backtest -> outputs/responsive_var.csv
+python run_garch.py     # Phase 9: GARCH + FHS, 6-model backtest (~1.5 min) -> outputs/garch_var.csv
 ```
 
 Each script downloads fresh data, so numbers move slightly as new days arrive.
@@ -208,15 +236,17 @@ config.py        all settings (portfolio, dates, confidence, window)
 data.py          prices -> glitch cleaning -> returns -> portfolio P&L
 models/          one file per VaR model, all sharing one interface (predict = VaR, predict_es = ES)
                    (base.py: VaRModel, rolling_var, exp_weights; historical.py; parametric.py;
-                    ewma.py; weighted_historical.py)
+                    ewma.py; weighted_historical.py; garch.py: GARCHVaR, rolling_garch)
 run_var.py       runs every model through history (Phase 2)
 stressed.py      finds the stressed window and computes SVaR (Phase 3)
 run_stressed.py  runs Phase 3
-backtest.py      breaches, Kupiec POF test, Basel traffic light (Phase 4), ES size check (Phase 7)
+backtest.py      breaches, Kupiec POF test, Basel traffic light (Phase 4), ES size check (Phase 7),
+                   compare_models (Phases 8-9)
 run_backtest.py  runs Phase 4
 report.py        automated Excel breach report (Phase 5)
 run_es.py        Expected Shortfall vs VaR, stressed ES, ES size check (Phase 7)
 run_responsive.py  EWMA and weighted VaR vs the originals on a common period (Phase 8)
+run_garch.py     GARCH and GARCH-FHS, final 6-model comparison (Phase 9)
 outputs/         generated files (not committed)
 devnotes/        one learning note per phase + CHANGELOG.md
 ```
