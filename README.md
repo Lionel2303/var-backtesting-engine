@@ -208,6 +208,28 @@ joint conditional-coverage test, χ²(2).
   - COVID (Mar 2020)
   - the US tariff sell-off (Apr 2025)
 
+### Phase 11 (Stage 3): Monte Carlo VaR
+Simulate 10,000 correlated one-day outcomes. Cholesky of the 250-day covariance
+turns independent draws into correlated asset returns. VaR = the 100th-worst
+simulated P&L. Two versions: bell-curve draws and Student-t (ν = 5, the same
+variance with fatter tails).
+
+Full period, **2 Sep 2008 → 24 Nov 2026 (4,756 days, 47.6 expected)**:
+
+| | Historical | Parametric | MC-normal | **MC-t** |
+|---|---|---|---|---|
+| Breaches | 64 | 82 | 82 | **45** |
+| Kupiec p | 0.023 | 5.3e-06 | 5.3e-06 | **0.71** |
+| Average VaR | ₹1.24 L | ₹1.09 L | ₹1.09 L | ₹1.22 L |
+| Independence p | 0.0017 | 0.016 | 0.016 | 0.0088 |
+
+- **MC-normal = parametric**, breach for breach (daily VaR ratio 0.987–1.021).
+- **The fat tail alone fixes the count:** with the same σ and window, MC-t drops to
+  45 breaches. But it still bunches, because tail shape and reaction speed are
+  separate fixes.
+- **Sampling noise** across 5 seeds: 7.0% at 1,000 draws, 2.4% at 10,000, 0.9% at
+  100,000 (it falls with √N).
+
 Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/).
 
 ## Limitations
@@ -225,7 +247,7 @@ Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/
 ## Planned next
 
 - ~~Expected Shortfall~~ (Phase 7), ~~EWMA / weighted VaR~~ (Phase 8) and ~~GARCH(1,1) + FHS~~ (Phase 9) done
-- ~~Christoffersen test~~ (Phase 10) done; Monte Carlo VaR next (Phase 11)
+- ~~Christoffersen test~~ (Phase 10) and ~~Monte Carlo VaR~~ (Phase 11) done
 - Derivatives with Greeks-based P&L explain
 - Stress scenarios (RBI rate shock, rupee fall)
 - An ML volatility-forecasting layer
@@ -246,6 +268,7 @@ python run_es.py        # Phase 7: Expected Shortfall vs VaR -> outputs/es_forec
 python run_responsive.py  # Phase 8: EWMA + weighted VaR, 4-model backtest -> outputs/responsive_var.csv
 python run_garch.py     # Phase 9: GARCH + FHS, 6-model backtest (~1.5 min) -> outputs/garch_var.csv
 python run_christoffersen.py  # Phase 10: breach independence tests (~1.5 min) -> outputs/christoffersen.csv
+python run_monte_carlo.py  # Phase 11: Monte Carlo VaR, normal + Student-t (~2 min) -> outputs/monte_carlo_var.csv
 ```
 
 Each script downloads fresh data, so numbers move slightly as new days arrive.
@@ -257,7 +280,8 @@ config.py        all settings (portfolio, dates, confidence, window)
 data.py          prices -> glitch cleaning -> returns -> portfolio P&L
 models/          one file per VaR model, all sharing one interface (predict = VaR, predict_es = ES)
                    (base.py: VaRModel, rolling_var, exp_weights; historical.py; parametric.py;
-                    ewma.py; weighted_historical.py; garch.py: GARCHVaR, rolling_garch)
+                    ewma.py; weighted_historical.py; garch.py: GARCHVaR, rolling_garch;
+                    monte_carlo.py: MonteCarloVaR)
 run_var.py       runs every model through history (Phase 2)
 stressed.py      finds the stressed window and computes SVaR (Phase 3)
 run_stressed.py  runs Phase 3
@@ -269,6 +293,7 @@ run_es.py        Expected Shortfall vs VaR, stressed ES, ES size check (Phase 7)
 run_responsive.py  EWMA and weighted VaR vs the originals on a common period (Phase 8)
 run_garch.py     GARCH and GARCH-FHS, final 6-model comparison (Phase 9)
 run_christoffersen.py  breach independence / conditional coverage for all 6 models (Phase 10)
+run_monte_carlo.py  Monte Carlo VaR (normal, Student-t) vs 250-day peers (Phase 11)
 outputs/         generated files (not committed)
 devnotes/        one learning note per phase + CHANGELOG.md
 ```
