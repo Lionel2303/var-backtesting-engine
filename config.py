@@ -78,3 +78,10 @@ GARCH_WINDOW = 500
 # Re-fit the parameters every 21 trading days (~monthly); in between, hold them
 # fixed and only update sigma. 1 = re-fit daily (unstable: see devnotes phase 9).
 GARCH_REFIT_EVERY = 21
+
+# Monte Carlo VaR (Phase 11): simulated days per forecast, random seed (fixed so
+# results are reproducible), and Student-t degrees of freedom (5 = fat tails:
+# the 1% point is 2.61 sigma vs 2.33 for a bell curve).
+MC_SIMS = 10_000
+MC_SEED = 42
+MC_T_DF = 5
