@@ -188,6 +188,26 @@ Final 6-model backtest, **18 Aug 2009 → 24 Nov 2026 (4,506 days, 45.1 expected
     reached ₹4.19 L.
 - **Responsive VaR remains the best model overall.**
 
+### Phase 10 (Stage 3): Christoffersen tests (do breaches bunch?)
+Kupiec counts breaches. Christoffersen asks whether a breach yesterday makes one today
+more likely: π11 (after a breach) vs π01 (after a calm day), LR ~ χ²(1), and the
+joint conditional-coverage test, χ²(2).
+
+| | Historical | Parametric | EWMA | Responsive | GARCH | GARCH-FHS |
+|---|---|---|---|---|---|---|
+| π11 (after a breach) | 6.90% | 5.19% | **3.95%** | 6.38% | 5.71% | 5.66% |
+| Independence p | 0.0069 | 0.054 | **0.19** | 0.013 | 0.028 | 0.027 |
+| Conditional coverage p | 0.0047 | 1.2e-05 | 5.7e-05 | 0.045 | 0.00023 | 0.044 |
+
+- **No model passes the joint test.** Responsive and GARCH-FHS get the count right
+  but fail it narrowly on back-to-back breaches.
+- **EWMA bunches least:** it reacts to yesterday's loss straight away.
+- The pairs are mostly the same two-day market shocks for every model:
+  - Infosys's CEO resigning (Aug 2017)
+  - the rupee/crude sell-off (4 Oct 2018)
+  - COVID (Mar 2020)
+  - the US tariff sell-off (Apr 2025)
+
 Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/).
 
 ## Limitations
@@ -195,8 +215,8 @@ Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/
 - **Constant exposure:** ₹10 lakh per asset every day, not a real share-count book.
 - **Breach driver** = the asset with the biggest loss that day. This is not a formal
   attribution like component VaR.
-- **Kupiec checks only the number of breaches, not their timing.** Breach clustering
-  needs the Christoffersen test (planned).
+- **Independence is tested only one day back** (Christoffersen, Phase 10). Breaches a
+  few days apart in a crisis look independent; a duration test is not yet added.
 - **GARCH parameters are unstable on a 500-day window:** calm windows can give α ≈ 0
   (no reaction to shocks). A longer or expanding window, or a floor on α, is untested.
 - **Data:** free Yahoo Finance data, which can revise the latest day's close for a
@@ -205,7 +225,7 @@ Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/
 ## Planned next
 
 - ~~Expected Shortfall~~ (Phase 7), ~~EWMA / weighted VaR~~ (Phase 8) and ~~GARCH(1,1) + FHS~~ (Phase 9) done
-- Monte Carlo VaR and the Christoffersen test
+- ~~Christoffersen test~~ (Phase 10) done; Monte Carlo VaR next (Phase 11)
 - Derivatives with Greeks-based P&L explain
 - Stress scenarios (RBI rate shock, rupee fall)
 - An ML volatility-forecasting layer
@@ -225,6 +245,7 @@ python report.py        # Phase 5: Excel breach report -> outputs/var_breach_rep
 python run_es.py        # Phase 7: Expected Shortfall vs VaR -> outputs/es_forecasts.csv
 python run_responsive.py  # Phase 8: EWMA + weighted VaR, 4-model backtest -> outputs/responsive_var.csv
 python run_garch.py     # Phase 9: GARCH + FHS, 6-model backtest (~1.5 min) -> outputs/garch_var.csv
+python run_christoffersen.py  # Phase 10: breach independence tests (~1.5 min) -> outputs/christoffersen.csv
 ```
 
 Each script downloads fresh data, so numbers move slightly as new days arrive.
@@ -241,12 +262,13 @@ run_var.py       runs every model through history (Phase 2)
 stressed.py      finds the stressed window and computes SVaR (Phase 3)
 run_stressed.py  runs Phase 3
 backtest.py      breaches, Kupiec POF test, Basel traffic light (Phase 4), ES size check (Phase 7),
-                   compare_models (Phases 8-9)
+                   compare_models (Phases 8-9), christoffersen (Phase 10)
 run_backtest.py  runs Phase 4
 report.py        automated Excel breach report (Phase 5)
 run_es.py        Expected Shortfall vs VaR, stressed ES, ES size check (Phase 7)
 run_responsive.py  EWMA and weighted VaR vs the originals on a common period (Phase 8)
 run_garch.py     GARCH and GARCH-FHS, final 6-model comparison (Phase 9)
+run_christoffersen.py  breach independence / conditional coverage for all 6 models (Phase 10)
 outputs/         generated files (not committed)
 devnotes/        one learning note per phase + CHANGELOG.md
 ```

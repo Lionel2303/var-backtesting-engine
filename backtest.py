@@ -9,6 +9,7 @@ Tools:
     kupiec_pof          : statistical test, "is the breach rate really 1%?"
     traffic_light       : Basel zone from breaches in the last 250 days
     rolling_zone        : the traffic-light zone for every day in history
+    christoffersen      : are breaches independent, or do they bunch? (Phase 10)
 
 ML link: this is evaluating a model on its test set. Each VaR forecast was
 built only from earlier days; the actual P&L that day is the unseen answer.
@@ -63,6 +64,57 @@ def kupiec_pof(n_breaches, n_days, p=0.01):
     lr = -2 * (ll_model - ll_observed)
     p_value = chi2.sf(lr, df=1)                     # sf = 1 - cdf = "chance of an LR this big or bigger"
     return {"LR": lr, "p_value": p_value, "verdict": "pass" if p_value >= 0.05 else "REJECT"}
+
+
+def christoffersen(breaches, p=0.01):
+    """
+    Christoffersen tests (Phase 10): are breaches INDEPENDENT of each other?
+
+    Kupiec only counts breaches. A good model's breaches should also be spread
+    out: a breach yesterday should not make one today more likely.
+    Count what happens from each day to the next (0 = no breach, 1 = breach):
+        n00 calm -> calm     n01 calm -> breach
+        n10 breach -> calm   n11 breach -> breach
+    pi01 = n01 / (n00 + n01) : chance of a breach the day after a calm day
+    pi11 = n11 / (n10 + n11) : chance of a breach the day after a breach
+    Independent model -> pi01 ~ pi11 (both ~1%).
+
+    Example, 5 breaches in 250 days:
+        spread out (days 30, 80, ...) : n11 = 0, LR_ind 0.20, p 0.65 -> pass
+        bunched (5 days in a row)     : n11 = 4, pi11 = 80%, LR_ind 31.0, p 2.6e-08 -> REJECT
+
+    LR_ind : one breach rate for all days vs two rates (after calm / after breach), chi2(1)
+    LR_cc  : Kupiec LR + LR_ind = "right number AND independent", chi2(2)
+    """
+    b = breaches.astype(int).to_numpy()   # True/False -> 1/0
+    prev, curr = b[:-1], b[1:]            # each day paired with the day after it
+    n00 = int(((prev == 0) & (curr == 0)).sum())
+    n01 = int(((prev == 0) & (curr == 1)).sum())
+    n10 = int(((prev == 1) & (curr == 0)).sum())
+    n11 = int(((prev == 1) & (curr == 1)).sum())
+    pi01 = n01 / (n00 + n01)
+    pi11 = n11 / (n10 + n11) if (n10 + n11) else 0.0   # no breaches at all -> 0
+    pi = (n01 + n11) / (n00 + n01 + n10 + n11)          # one rate for every day
+
+    # log-likelihoods (xlogy avoids ln(0) when a count is 0)
+    ll_one_rate = xlogy(n00 + n10, 1 - pi) + xlogy(n01 + n11, pi)
+    ll_two_rates = (xlogy(n00, 1 - pi01) + xlogy(n01, pi01)
+                    + xlogy(n10, 1 - pi11) + xlogy(n11, pi11))
+    lr_ind = -2 * (ll_one_rate - ll_two_rates)
+    lr_cc = kupiec_pof(int(b.sum()), len(b), p)["LR"] + lr_ind
+    p_ind, p_cc = chi2.sf(lr_ind, df=1), chi2.sf(lr_cc, df=2)
+    return {"n00": n00, "n01": n01, "n10": n10, "n11": n11, "pi01": pi01, "pi11": pi11,
+            "LR_ind": lr_ind, "p_ind": p_ind, "ind": "pass" if p_ind >= 0.05 else "REJECT",
+            "LR_cc": lr_cc, "p_cc": p_cc, "cc": "pass" if p_cc >= 0.05 else "REJECT"}
+
+
+def longest_run(breaches):
+    """Longest streak of breaches on consecutive days (e.g. 0,1,1,1,0,1 -> 3)."""
+    best = run = 0
+    for hit in breaches:
+        run = run + 1 if hit else 0      # extend the streak, or reset it on a calm day
+        best = max(best, run)
+    return best
 
 
 def traffic_light(n_breaches_250):
