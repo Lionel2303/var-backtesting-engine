@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from backtest import es_severity, find_breaches, kupiec_pof, rolling_zone
+from backtest import compare_models
 from config import (CONFIDENCE, EWMA_LAMBDA, HOLDINGS, RESPONSIVE_LAMBDA,
                     RESPONSIVE_WINDOW, WINDOW)
 from data import load_data
@@ -69,28 +69,10 @@ def main():
               f"   (window {win}, lambda {lam}, weighted data age {weighted_age(win, lam):.0f} days)")
     print()
 
-    # 2. Backtest every model on the common period.
-    rows, breaches = {}, {}
-    for n in names:
-        b = find_breaches(var[n], actual)
-        breaches[n] = b
-        k = kupiec_pof(int(b.sum()), n_days, P)
-        z = rolling_zone(b, 250)
-        sev = es_severity(b, es[f"{n}_es"], actual)
-        rows[n] = {
-            "breaches": int(b.sum()),
-            "breach_rate": f"{b.mean():.2%}",
-            "kupiec_p": f"{k['p_value']:.2g}",
-            "kupiec": k["verdict"],
-            "zone_today": z["zone"].iloc[-1],
-            "red_days": f"{(z['zone'] == 'red').mean():.1%}",
-            "worst_250d": int(z["breaches_250d"].max()),
-            "breaches_2020": int(b.loc["2020"].sum()),
-            "avg_VaR_L": lakh(var[n].mean()),
-            "ES_size_ratio": round(sev["ratio"], 2),
-        }
+    # 2. Backtest every model on the common period (same scoring for every model).
+    summary, breaches = compare_models(var, es, actual, P)
     print("Backtest on the common period:")
-    print(pd.DataFrame(rows).to_string(), "\n")
+    print(summary.to_string(), "\n")
 
     # 3. Reaction speed: what each model forecast around the COVID crash.
     days = ["2020-02-14", "2020-03-09", "2020-03-12", "2020-03-16", "2020-03-23",

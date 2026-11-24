@@ -70,3 +70,11 @@ ES_CONFIDENCE = 0.975
 EWMA_LAMBDA = 0.94         # RiskMetrics daily decay: weights halve every ~11 days
 RESPONSIVE_LAMBDA = 0.994  # "Responsive VaR" (FRAM reading material): halve every ~115 days
 RESPONSIVE_WINDOW = 500    # ...on a 2-year window, as in the reading material
+
+# GARCH(1,1) (Phase 9): parameters are fitted on the last 500 days
+# (250 is too few to estimate 3 parameters reliably; 500 also keeps the same
+# backtest period as Phase 8).
+GARCH_WINDOW = 500
+# Re-fit the parameters every 21 trading days (~monthly); in between, hold them
+# fixed and only update sigma. 1 = re-fit daily (unstable: see devnotes phase 9).
+GARCH_REFIT_EVERY = 21

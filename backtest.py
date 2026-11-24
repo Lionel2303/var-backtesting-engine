@@ -101,3 +101,35 @@ def rolling_zone(breaches, window=250):
     """
     counts = breaches.astype(int).rolling(window).sum().dropna().astype(int)
     return pd.DataFrame({"breaches_250d": counts, "zone": counts.map(traffic_light)})
+
+
+def compare_models(var, es, actual, p=0.01):
+    """
+    Score several models the same way on the same dates (Phases 8-9).
+
+    var    : table of VaR forecasts, one column per model (e.g. "historical")
+    es     : table of ES forecasts, columns "<model>_es"
+    actual : actual P&L per day
+    Returns (summary table with one column per model, dict of breach flags per model).
+    """
+    rows, flags = {}, {}
+    n_days = len(var)
+    for n in var.columns:
+        b = find_breaches(var[n], actual)
+        flags[n] = b
+        k = kupiec_pof(int(b.sum()), n_days, p)
+        z = rolling_zone(b, 250)
+        sev = es_severity(b, es[f"{n}_es"], actual)
+        rows[n] = {
+            "breaches": int(b.sum()),
+            "breach_rate": f"{b.mean():.2%}",
+            "kupiec_p": f"{k['p_value']:.2g}",
+            "kupiec": k["verdict"],
+            "zone_today": z["zone"].iloc[-1],
+            "red_days": f"{(z['zone'] == 'red').mean():.1%}",
+            "worst_250d": int(z["breaches_250d"].max()),
+            "breaches_2020": int(b.loc["2020"].sum()),
+            "avg_VaR_L": round(var[n].mean() / 1e5, 2),
+            "ES_size_ratio": round(sev["ratio"], 2),
+        }
+    return pd.DataFrame(rows), flags

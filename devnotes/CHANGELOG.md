@@ -2,6 +2,8 @@
 
 One line per phase, newest first.
 
+- 2026-11-24: Phase 9: GARCH(1,1) VaR via `arch` (normal tail and Filtered Historical Simulation), re-fitted every 21 days with parameters held between (rolling_garch); compare_models shared scoring. 6-model backtest (4,506 days): GARCH-FHS 53 breaches (p 0.25, pass), GARCH-normal 70 (reject); responsive still best (47). Found daily re-fit flips (α 0.00→0.22→0.04, VaR −41%) and α ≈ 0 fits in 24/215 calm windows (limitation). run_garch.py; arch added to requirements.
+
 - 2026-11-23: Phase 8: EWMA (RiskMetrics λ 0.94) and Responsive VaR (weighted HS, λ 0.994, 500 days) behind the same interface; exp_weights, weighted_age. Common-period backtest (4,505 days): responsive 47 breaches vs 45.1 expected (Kupiec p 0.77), fewest in 2020 (6); EWMA has no cliffs (−3%) but 76 breaches. run_responsive.py.
 
 - 2026-11-23: Phase 7 (Stage 2): Expected Shortfall: predict_es on every model (historical tail average, parametric σφ(z)/(1−α)−μ), ES 99% and 97.5%, stressed ES (hist. ₹3.77 L), ES size check on breach days (ES 11% / 24% too small). run_es.py.
