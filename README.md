@@ -236,6 +236,8 @@ Full period, **2 Sep 2008 → 24 Nov 2026 (4,756 days, 47.6 expected)**:
     windows look almost normal (ν ≈ 13).
 
 Full write-ups, with worked examples and decisions, are in [devnotes/](devnotes/).
+For a one-file revision summary (model map, formula sheet, self-test), see
+[devnotes/STUDY-GUIDE.md](devnotes/STUDY-GUIDE.md).
 
 ## Limitations
 
