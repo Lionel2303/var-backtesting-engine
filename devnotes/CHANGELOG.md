@@ -2,6 +2,8 @@
 
 One line per phase, newest first.
 
+- 2026-11-24: Phase 11 addendum: ν sensitivity table (nu_sensitivity in run_monte_carlo.py): ν 3–6 pass Kupiec (43–50 breaches), ν ≥ 8 fail (63+). Rolling 250-day MLE fit of ν did worse (60 breaches; calm windows ν ≈ 13). ν = 5 kept as a documented assumption.
+
 - 2026-11-24: Phase 11: Monte Carlo VaR (models/monte_carlo.py: Cholesky, 10,000 draws, normal or Student-t ν 5, fixed seed). Full period (4,756 days): MC-normal = parametric (82 breaches, daily ratio 0.987–1.021); MC-t 45 breaches (Kupiec p 0.71) but still bunches (independence p 0.0088). Sampling noise 7.0% / 2.4% / 0.9% at 1k / 10k / 100k draws. Stage 3 complete. run_monte_carlo.py.
 
 - 2026-11-24: Phase 10 (Stage 3): Christoffersen independence and conditional-coverage tests (backtest.christoffersen, longest_run) on all 6 models over 4,506 days. No model passes conditional coverage (responsive p 0.045, FHS 0.044); only EWMA (p 0.19) and parametric (0.054) pass independence. Back-to-back breaches are shared market events (Infosys Aug 2017, 4 Oct 2018, Mar 2020, Apr 2025). run_garch.py refactored (model_setup, six_model_forecasts); run_christoffersen.py.
