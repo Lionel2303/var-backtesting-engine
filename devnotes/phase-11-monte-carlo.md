@@ -91,6 +91,7 @@ and VaR and ES come from the same simulated days.
 - σ of the simulated P&L: normal ₹45,650, t ₹45,634, formula ₹45,662.
 
 **Sampling noise** (MC-normal VaR, latest window, 5 seeds):
+
 | Draws | Lowest | Highest | Spread |
 |---|---|---|---|
 | 1,000 | ₹1.05 L | ₹1.13 L | 7.0% |
@@ -104,6 +105,7 @@ and VaR and ES come from the same simulated days.
 - **MC-t 1.20 / 1.69**
 
 **Backtest** (2 Sep 2008 → 24 Nov 2026, **4,756 days**, 47.6 expected):
+
 | | Historical | Parametric | MC-normal | MC-t |
 |---|---|---|---|---|
 | Breaches | 64 (1.35%) | 82 (1.72%) | 82 (1.72%) | **45 (0.95%)** |
