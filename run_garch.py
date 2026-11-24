@@ -48,6 +48,30 @@ def describe_params(params):
             f"  half-life {half_life:.0f} days  long-run vol {long_run:.2f}%/day")
 
 
+def model_setup():
+    """The 6 models and the window each one uses (shared with run_christoffersen.py)."""
+    return [
+        (HistoricalVaR(HOLDINGS, CONFIDENCE), WINDOW),
+        (ParametricVaR(HOLDINGS, CONFIDENCE), WINDOW),
+        (EWMAVaR(HOLDINGS, CONFIDENCE, EWMA_LAMBDA), WINDOW),
+        (WeightedHistoricalVaR(HOLDINGS, CONFIDENCE, RESPONSIVE_LAMBDA), RESPONSIVE_WINDOW),
+        (GARCHVaR(HOLDINGS, CONFIDENCE, "normal"), GARCH_WINDOW),
+        (GARCHVaR(HOLDINGS, CONFIDENCE, "fhs"), GARCH_WINDOW),
+    ]
+
+
+def six_model_forecasts(returns, setup=None):
+    """
+    Rolling VaR and ES for all 6 models, kept only on dates where ALL have a
+    forecast (the common period). Returns (var table, es table).
+    """
+    setup = setup or model_setup()
+    # GARCH models share each day's fit through the cache.
+    var = pd.concat([rolling(m, returns, w) for m, w in setup], axis=1).dropna()
+    es = pd.concat([rolling(m, returns, w, "es") for m, w in setup], axis=1)
+    return var, es.loc[var.index]
+
+
 def main():
     data = load_data()
     returns, pnl = data["returns"], data["pnl"]
@@ -64,14 +88,7 @@ def main():
     print(f"GARCH(1,1) on the latest {GARCH_WINDOW} days:")
     print("  " + describe_params(latest["params"]) + "\n")
 
-    setup = [
-        (HistoricalVaR(HOLDINGS, CONFIDENCE), WINDOW),
-        (ParametricVaR(HOLDINGS, CONFIDENCE), WINDOW),
-        (EWMAVaR(HOLDINGS, CONFIDENCE, EWMA_LAMBDA), WINDOW),
-        (WeightedHistoricalVaR(HOLDINGS, CONFIDENCE, RESPONSIVE_LAMBDA), RESPONSIVE_WINDOW),
-        (GARCHVaR(HOLDINGS, CONFIDENCE, "normal"), GARCH_WINDOW),
-        (GARCHVaR(HOLDINGS, CONFIDENCE, "fhs"), GARCH_WINDOW),
-    ]
+    setup = model_setup()
     names = [m.name for m, _ in setup]
 
     # 2. Next trading day.
@@ -81,11 +98,8 @@ def main():
         print(f"  {m.name:11s} VaR {lakh(m.predict(recent)):5.2f}   ES {lakh(m.predict_es(recent)):5.2f}")
     print()
 
-    # 3. Rolling forecasts. VaR and ES are computed day by day, model by model;
-    #    the two GARCH models share each day's fit through the cache.
-    var = pd.concat([rolling(m, returns, w) for m, w in setup], axis=1).dropna()
-    es = pd.concat([rolling(m, returns, w, "es") for m, w in setup], axis=1)
-    es = es.loc[var.index]
+    # 3. Rolling forecasts for every model on the common period.
+    var, es = six_model_forecasts(returns, setup)
     actual = pnl.reindex(var.index)
     print(f"Common backtest period: {var.index[0].date()} -> {var.index[-1].date()} "
           f"({len(var)} days; expected breaches at 1% = {P * len(var):.1f})")
